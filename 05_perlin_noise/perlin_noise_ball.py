@@ -70,8 +70,9 @@ def perlin_noise():
 
 def noise(time):
     choice = perlin_noise()
+    choice_max = max(choice)
     if time >= 0 and time <= 10000:
-        p = choice[int(time//100)]
+        p = choice[int(time//100)]/choice_max
     else:
         print("Time should be less than 10000")
     return p
@@ -83,7 +84,7 @@ dot(1, "black")
 t = 0
 while True:
     undo()
-    h = noise(t)
+    h = (noise(t)-0.5   ) * width/2
     penup()
     goto(h, 0)
     pendown()
