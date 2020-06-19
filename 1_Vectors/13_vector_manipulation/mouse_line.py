@@ -5,10 +5,6 @@ import time
 WIDTH = 600
 HEIGHT = 400
 
-# def motion(event):
-#     x, y = event.x, event.y
-#     print('{}, {}'.format(x, y))
-
 class Motion(object):
     """docstring for Motion."""
 
@@ -25,8 +21,8 @@ root = Tk()
 canvas = Canvas(root, width=WIDTH, height=HEIGHT)
 root.title("Lines")
 canvas.pack()
-line_pos = Motion(np.zeros(2))
 origin = np.array([WIDTH/2., HEIGHT/2.])
+line_pos = Motion(np.zeros(2))
 root.bind('<Motion>', line_pos.movment)
 while True:
     canvas.create_line(origin[0], origin[1], line_pos.pos[0], line_pos.pos[1])
