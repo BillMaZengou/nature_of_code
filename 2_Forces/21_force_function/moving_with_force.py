@@ -40,21 +40,43 @@ class Mover(object):
         y1 = self.loc[1] + self.dis
         return x0, y0, x1, y1
 
+class Mouse(object):
+    """docstring for Motion."""
+
+    def __init__(self, pos):
+        super(Mouse, self).__init__()
+        self.pos = pos
+
+    def position(self, event):
+        self.pos[0] = event.x
+        self.pos[1] = event.y
+
+    def clear(self):
+        self.pos = np.zeros_like(self.pos)
+
 root = Tk()
 canvas = Canvas(root, width=WIDTH, height=HEIGHT)
-root.title("Lines")
+root.title("Force")
+mouse = Mouse(np.zeros(2))
+canvas.bind("<Button-1>", mouse.position)
 canvas.pack()
 mover1 = Mover(20)
-force = np.array([0.2, 0.3])
+gravity = np.array([0, 0.3])
+wind = np.array([1, 0])
+
 while True:
     x0, y0, x1, y1 = mover1.display()
     canvas.create_oval(x0, y0, x1, y1, fill="lightblue", outline="black")
 
-    mover1.addForce(force)
+    mover1.addForce(gravity)
+    if mouse.pos[0] != 0:
+        mover1.addForce(wind)
     mover1.next()
     mover1.checkEdge()
+    mouse.clear()
 
     root.update()
     canvas.delete("all")
+
 time.sleep(0.01)
 root.mainloop()
