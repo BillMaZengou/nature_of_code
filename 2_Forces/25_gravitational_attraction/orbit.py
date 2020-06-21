@@ -3,17 +3,17 @@ from tkinter import *
 import time
 
 WIDTH = 600
-HEIGHT = 400
+HEIGHT = 600
 
 class Mover(object):
     """docstring for Mover."""
 
-    def __init__(self, loc, mass):
+    def __init__(self, loc, mass, vel=np.zeros(2)):
         super(Mover, self).__init__()
         self.loc = loc
         self.mass = mass
+        self.vel = vel
         self.radius = self.mass * 10
-        self.vel = np.zeros(2)
         self.acc = np.zeros(2)
         self.dis = np.sqrt(self.radius**2/2)
 
@@ -47,26 +47,32 @@ canvas = Canvas(root, width=WIDTH, height=HEIGHT)
 root.title("Force")
 canvas.pack()
 
-G = 0.1
+G = 0.5
 sun_pos = np.array([WIDTH/2, HEIGHT/2])
-planet_pos = np.array([WIDTH/5, HEIGHT/5])
-sun = Mover(sun_pos, 4)
-planet = Mover(planet_pos, np.random.uniform(0.5, 2))
-stars = [sun, planet]
+sun = Mover(sun_pos, 5)
+planets = []
+
+for i in range(8):
+    planet_pos = np.array([WIDTH/np.random.uniform(3, 10), HEIGHT/np.random.uniform(3, 10)])
+    planet = Mover(planet_pos, np.random.uniform(0.5, 3), vel=np.array([np.random.uniform(0.5, 2.5),0.0]))
+    planets.append(planet)
 
 while True:
-    distance, direction = r(sun, planet)
+    x0, y0, x1, y1 = sun.display()
+    canvas.create_oval(x0, y0, x1, y1, fill="orange", outline="black")
 
-    for star in stars:
+    for star in planets:
         x0, y0, x1, y1 = star.display()
         canvas.create_oval(x0, y0, x1, y1, fill="gray", outline="black")
 
-    if distance < sun.dis:
-        gravity = np.zeros_like(direction)
-    else:
-        gravity = G * sun.mass * planet.mass * direction / distance
-    planet.applyForce(gravity)
-    planet.next()
+        distance, direction = r(sun, star)
+
+        if distance < sun.dis:
+            gravity = np.zeros_like(direction)
+        else:
+            gravity = G * sun.mass * star.mass * direction / distance
+        star.applyForce(gravity)
+        star.next()
 
     root.update()
     canvas.delete("all")
