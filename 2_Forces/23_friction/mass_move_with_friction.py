@@ -74,7 +74,7 @@ canvas.pack()
 gravity = np.array([0, 0.4])
 wind = np.array([1., 0])
 
-num_of_movers = 1
+num_of_movers = 5
 movers = []
 for i in range(num_of_movers):
     movers.append(Mover())
