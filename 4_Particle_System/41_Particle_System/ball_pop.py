@@ -38,7 +38,7 @@ class Particle(Mass):
         Mass.__init__(self, mass, I, loc, vel, ang, ang_vel)
         self.radius = self.mass * 5
         self.dis = np.sqrt(self.radius**2/2)
-        self.hp = 100
+        self.hp = 200
         self.alive = True
 
     def display(self):
@@ -50,7 +50,7 @@ class Particle(Mass):
 
     def dying(self):
         if self.hp > 0:
-            self.hp -= 1
+            self.hp -= 2
         else:
             self.alive = False
 
@@ -103,27 +103,27 @@ Thrust
 def thrust(magnitude, angle=0):
     return rotation(angle)@np.array([1., 0.])*magnitude
 
-# """
-# Drag
-# """
-# def drag(vel, C=0.005, rho=1, A=1):
-#     v_mag_square = sum(vel**2)
-#     if np.linalg.norm(vel) < 0.000001:
-#         drag = np.zeros_like(vel)
-#     else:
-#         drag = -rho * A * v_mag_square * C * np.divide(vel, np.linalg.norm(vel))
-#     return drag
-#
-# """
-# Friction
-# """
-# def friction(vel, mu=0.001):
-#     f = vel
-#     if np.linalg.norm(f) < 0.000001:
-#         f = np.zeros_like(vel)
-#     else:
-#         f = - mu * np.divide(f, np.linalg.norm(f))
-#     return f
+"""
+Drag
+"""
+def drag(vel, C=0.005, rho=1, A=1):
+    v_mag_square = sum(vel**2)
+    if np.linalg.norm(vel) < 0.000001:
+        drag = np.zeros_like(vel)
+    else:
+        drag = -rho * A * v_mag_square * C * np.divide(vel, np.linalg.norm(vel))
+    return drag
+
+"""
+Friction
+"""
+def friction(vel, mu=0.001):
+    f = vel
+    if np.linalg.norm(f) < 0.000001:
+        f = np.zeros_like(vel)
+    else:
+        f = - mu * np.divide(f, np.linalg.norm(f))
+    return f
 
 class ParticleBox(object):
     """docstring for ParticleBox."""
@@ -135,58 +135,41 @@ class ParticleBox(object):
         for i in range(len(self.particle_list)):
             self.Id_list[i] = id(self.particle_list[i])
 
-
 """
 Initialisation
 """
-b1 = Particle(mass=5, I=0, loc=origin, vel=np.zeros(2), ang=0, ang_vel=0)
-b2 = Particle(mass=5, I=0, loc=origin, vel=np.zeros(2), ang=0, ang_vel=0)
-b3 = Particle(mass=5, I=0, loc=origin, vel=np.zeros(2), ang=0, ang_vel=0)
-b4 = Particle(mass=5, I=0, loc=origin, vel=np.zeros(2), ang=0, ang_vel=0)
-ball_list = [b1, b2, b3, b4]
-ball_box = ParticleBox(ball_list)
-# print(ball_box.Id_list)
+ball = Particle(mass=5, I=0, loc=origin, vel=np.zeros(2), ang=0, ang_vel=0)
+Id = id(ball)
+F_g = gravity(ball.mass, gravitational_acc=0.1)
 F_w = thrust(20, angle=0)
-ifThurst = np.ones_like(ball_box.particle_list)
+F_thrust = thrust(10, angle=-90+np.random.uniform(-100, 100))
 
+ball.applyForce(F_thrust)
 while True:
-    for i in range(len(ball_box.particle_list)):
-        # if ball_box.Id_list[i] != 0:
-        ball = ball_box.particle_list[i]
-        F_g = gravity(ball.mass, gravitational_acc=0.1)
-        if ifThurst[i] != 0:
-            # angle = -90+np.random.uniform(-100, 100)
-            # print(angle)
-            F_thrust = thrust(1, angle=-90+np.random.uniform(-100, 100))
-            print(F_thrust)
-            ball.applyForce(F_thrust)
-            ifThurst[i] = 0
-
+    if Id != 0:
         if ball.alive == True:
             x0, y0, x1, y1 = ball.display()
-            canvas.create_oval(x0, y0, x1, y1, fill="orange", outline="black")
-
+            color = '#' + hex(255-ball.hp)[-2:] * 3
+            canvas.create_oval(x0, y0, x1, y1, fill=color, outline=color)
             ball.applyForce(F_g)
+
             if mouse.pos[0] != 0.0:
                 ball.applyForce(F_w)
-            # vel = ball.vel.copy()
-            # air_resistance = drag(vel) + friction(vel)
-            # if air_resistance.any() != 0.0:
-            #     ball.applyForce(air_resistance)
-
+            vel = ball.vel.copy()
+            air_resistance = drag(vel) + friction(vel)
+            if air_resistance.any() != 0.0:
+                ball.applyForce(air_resistance)
             ball.next()
             ball.dying()
-            # else:
-            #     # del ball
-            #     ball_box.Id_list[i] = 0
-        # else:
-        #     continue
-
+        else:
+            Id = 0
+            del ball
+    else:
+        continue
 
     mouse.clear()
     root.update()
     canvas.delete("all")
-
 
 time.sleep(0.01)
 root.mainloop()
