@@ -125,16 +125,6 @@ def friction(vel, mu=0.001):
         f = - mu * np.divide(f, np.linalg.norm(f))
     return f
 
-class ParticleBox(object):
-    """docstring for ParticleBox."""
-
-    def __init__(self, particle_list):
-        super(ParticleBox, self).__init__()
-        self.particle_list = particle_list
-        self.Id_list = np.zeros_like(self.particle_list)
-        for i in range(len(self.particle_list)):
-            self.Id_list[i] = id(self.particle_list[i])
-
 """
 Initialisation
 """
