@@ -128,50 +128,45 @@ def friction(vel, mu=0.001):
 """
 Initialisation
 """
-index = []
 balls = []
-balls_id = []
 thrusts = []
-for i in range(50):
-    loc = origin+np.random.random(2)*100
-    angle = np.random.randint(0, 360)
-    thrust_mag = np.random.randint(0, 50)
-    ball_item = Particle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=0)
-    Id_element = id(ball_item)
-    F_thrust = thrust(thrust_mag, angle=angle)
-    index.append(i)
-    balls.append(ball_item)
-    balls_id.append(Id_element)
-    thrusts.append(F_thrust)
 
-F_g = gravity(balls[0].mass, gravitational_acc=0.1)
 F_w = thrust(10, angle=0)
 
 while True:
-    for i, ball, Id, F_thrust in zip(index, balls, balls_id, thrusts):
-        if Id != 0:
-            if ball.alive == True:
-                x0, y0, x1, y1 = ball.display()
-                color = '#' + hex(250-ball.hp)[-2:] * 3
-                canvas.create_oval(x0, y0, x1, y1, fill=color, outline=color)
-                ball.applyForce(F_thrust)
-                thrusts[i] = np.zeros_like(F_thrust)
-                ball.applyForce(F_g)
+    print(balls.__len__())
+    loc = origin+np.random.random(2)*10
+    angle = -90 + np.random.randn()*50
+    thrust_mag = np.random.randint(0, 50)
+    ball_item = Particle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=0)
+    F_thrust = thrust(thrust_mag, angle=angle)
+    balls.append(ball_item)
+    thrusts.append(F_thrust)
 
-                if mouse.pos[0] != 0.0:
-                    ball.applyForce(F_w)
-                vel = ball.vel.copy()
-                air_resistance = drag(vel) + friction(vel)
-                if air_resistance.any() != 0.0:
-                    ball.applyForce(air_resistance)
+    F_g = gravity(balls[0].mass, gravitational_acc=0.1)
 
-                ball.next()
-                ball.dying()
-            else:
-                balls_id[i] = 0
-                del ball
+    for i in range(len(balls)-1, -1, -1):
+        ball = balls[i]
+        if ball.alive == True:
+            x0, y0, x1, y1 = ball.display()
+            color = '#' + hex(250-ball.hp)[-2:] * 3
+            canvas.create_oval(x0, y0, x1, y1, fill=color, outline=color)
+            ball.applyForce(thrusts[i])
+            thrusts[i] = np.zeros_like(F_thrust)
+            ball.applyForce(F_g)
+
+            if mouse.pos[0] != 0.0:
+                ball.applyForce(F_w)
+            vel = ball.vel.copy()
+            air_resistance = drag(vel) + friction(vel)
+            if air_resistance.any() != 0.0:
+                ball.applyForce(air_resistance)
+
+            ball.next()
+            ball.dying()
         else:
-            continue
+            balls.remove(balls[i])
+            thrusts.remove(thrusts[i])
 
     mouse.clear()
     root.update()
