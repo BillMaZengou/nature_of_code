@@ -87,6 +87,9 @@ class Particle(Mass):
     def dying(self):
         if self.hp > 0:
             self.hp -= 1
+            r = np.random.random()
+            if r < 0.2:
+                self.mass *= 0.95
         else:
             self.alive = False
 
@@ -163,9 +166,10 @@ class StarParticle(Particle):
 class ParticleSystem(object):
     """docstring for ParticleSystem."""
 
-    def __init__(self, origin):
+    def __init__(self, origin, particle_mass):
         super(ParticleSystem, self).__init__()
         self.origin = origin
+        self.particle_mass = particle_mass
         self.items = []
         self.thrusts = []
 
@@ -173,33 +177,22 @@ class ParticleSystem(object):
         for item in self.items:
             item.applyForce(force)
 
-    def run(self, canvas):
+    def run(self, canvas, texture=None):
         loc = self.origin+np.random.random(2)*10
-        angle = -90 + np.random.randn()*50
-        thrust_mag = np.random.randint(0, 50)
-        r = np.random.uniform(0, 1)
-        if r < 0.2:
-            particle = SquareParticle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=np.random.uniform(-5, 5))
-        elif r < 0.4:
-            particle = TriangleParticle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=np.random.uniform(-5, 5))
-        elif r < 0.6:
-            particle = TrapeziumParticle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=np.random.uniform(-5, 5))
-        elif r < 0.7:
-            particle = StarParticle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=0)
-        else:
-            particle = Particle(mass=10, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=0)
-        F_thrust = thrust(thrust_mag, angle=angle)
+        thrust_mag = 30
+        particle = Particle(mass=self.particle_mass, I=0, loc=loc, vel=np.zeros(2), ang=0, ang_vel=0)
+        F_thrust = thrust(thrust_mag, angle=-90)
         self.items.append(particle)
         self.thrusts.append(F_thrust)
-
-        # Currently, mass is the same. If not, F_g cannot be uniform
-        F_g = gravity(self.items[0].mass, gravitational_acc=0.2)
-        self.addUniForce(F_g)
 
         for i in range(len(self.items)-1, -1, -1):
             item = self.items[i]
             if item.alive == True:
-                color = '#' + hex(250-item.hp)[-2:] * 3
+                if texture != None:
+                    color = 'orange'
+                else:
+                    color = '#' + hex(250-item.hp)[-2:] * 3
+
                 if item.polygon == 0:
                     x0, y0, x1, y1 = item.display()
                     canvas.create_oval(x0, y0, x1, y1, fill=color, outline=color)
@@ -214,6 +207,10 @@ class ParticleSystem(object):
                     canvas.create_polygon(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1],
                                         p3[0], p3[1], p4[0], p4[1], p5[0], p5[1],
                                         p6[0], p6[1], p7[0], p7[1], p8[0], p8[1], p9[0], p9[1], fill=color, outline=color)
+
+                if texture != None:
+                    canvas.create_image(item.loc[0], item.loc[1], image=displayPlantImage)
+
                 item.applyForce(self.thrusts[i])
                 self.thrusts[i] = np.zeros_like(F_thrust)
 
@@ -228,7 +225,6 @@ class ParticleSystem(object):
                 self.items.pop(i)
                 self.thrusts.pop(i)
 
-
 """
 Geometry
 """
@@ -240,21 +236,14 @@ def rotation(angle):
 """
 Basic
 """
-WIDTH = 1200
-HEIGHT = 1200
+WIDTH = 1000
+HEIGHT = 600
 
 root = Tk()
 canvas = Canvas(root, width=WIDTH, height=HEIGHT)
-root.title("Pop")
-wind_blow = WindSummon()
-
-xLabel = Label(root, text="Press W for wind")
-xLabel.focus_set()
-xLabel.pack()
-xLabel.bind("<Key>", wind_blow.summon)
-
+root.title("Flame")
 mouse = Mouse(np.array([-WIDTH, HEIGHT]))
-canvas.bind("<Button-1>", mouse.position)
+root.bind('<Motion>', mouse.position)
 canvas.pack()
 
 """
@@ -274,7 +263,10 @@ Drag
 """
 def drag(vel, C=0.005, rho=1, A=1):
     v_mag_square = sum(vel**2)
-    if np.linalg.norm(vel) < 0.000001:
+    # Just a limit
+    if v_mag_square > 8.0:
+        v_mag_square = 8.0
+    if np.linalg.norm(vel) < 0.0001:
         drag = np.zeros_like(vel)
     else:
         drag = -rho * A * v_mag_square * C * np.divide(vel, np.linalg.norm(vel))
@@ -285,7 +277,7 @@ Friction
 """
 def friction(vel, mu=0.001):
     f = vel
-    if np.linalg.norm(f) < 0.000001:
+    if np.linalg.norm(f) < 0.0001:
         f = np.zeros_like(vel)
     else:
         f = - mu * np.divide(f, np.linalg.norm(f))
@@ -294,15 +286,24 @@ def friction(vel, mu=0.001):
 """
 Initialisation
 """
-origin = mouse.pos
-particles = ParticleSystem(origin)
-wind = thrust(10)
+origin = np.array([WIDTH/2, 3*HEIGHT/4])
+particles = ParticleSystem(origin, 10)
+img = PhotoImage(file="flame_particle.png")
+scale_w = int(img.width()/20)
+scale_h = int(img.height()/20)
+displayPlantImage = img.subsample(scale_w, scale_h)
 
 while True:
-    particles.run(canvas)
-    if wind_blow.ifWind == True:
-        particles.addUniForce(wind)
-        wind_blow.hault()
+
+    if abs(mouse.pos[0]-WIDTH/2) > 200:
+        wind_mag = mouse.pos[0]-WIDTH/2
+        wind_mag = 200*wind_mag/abs(wind_mag)
+    else:
+        wind_mag = mouse.pos[0] - WIDTH/2
+    canvas.create_line(WIDTH/2, HEIGHT/5, WIDTH/2+wind_mag, HEIGHT/5, arrow=LAST)
+    wind = thrust(wind_mag/500)
+    particles.addUniForce(wind)
+    particles.run(canvas, displayPlantImage)
     root.update()
     canvas.delete("all")
 
